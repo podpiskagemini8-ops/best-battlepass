@@ -1,8 +1,6 @@
-node_modules/
-build/
-dist/
-coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
+{
+  "name": "Blackout Battle Pass",
+  "description": "An aggressive, stylized battle pass interface with a gritty brush-stroke aesthetic, interactive progress tracking, and reward animations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

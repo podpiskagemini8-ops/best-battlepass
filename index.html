@@ -1,9 +1,379 @@
-# GEMINI_API_KEY: Required for Gemini AI API calls.
-# AI Studio automatically injects this at runtime from user secrets.
-# Users configure this via the Secrets panel in the AI Studio UI.
-GEMINI_API_KEY="MY_GEMINI_API_KEY"
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackout Battle Pass</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,900;1,900&family=Outfit:wght@900&display=swap');
 
-# APP_URL: The URL where this applet is hosted.
-# AI Studio automatically injects this at runtime with the Cloud Run service URL.
-# Used for self-referential links, OAuth callbacks, and API endpoints.
-APP_URL="MY_APP_URL"
+        :root {
+            --brand-red: #CC0000;
+            --brand-black: #050505;
+            --brand-grey: #262626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--brand-black);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Фоновые декорации оригинального стиля */
+        .bg-decor {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+        }
+
+        .red-stripe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 45%;
+            background: var(--brand-red);
+            transform: skewY(-5deg) translateY(-15%);
+            z-index: 1;
+        }
+
+        .brush-divider {
+            position: absolute;
+            top: 35%;
+            left: 0;
+            width: 100%;
+            height: 65%;
+            background: var(--brand-black);
+            clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 100%);
+            z-index: 2;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            padding: 40px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Заголовок */
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 80px;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            line-height: 0.85;
+            letter-spacing: -4px;
+        }
+
+        header .black-text { color: var(--brand-black); }
+        header .white-text { color: white; }
+
+        /* Основная часть: Прогресс + Габриэль */
+        .content-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* Линия прогресса */
+        .battlepass-track {
+            display: flex;
+            gap: 15px;
+            padding-right: 50px;
+            position: relative;
+        }
+
+        .track-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 90%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-50%);
+            z-index: 0;
+        }
+
+        .track-fill {
+            height: 100%;
+            background: white;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            width: 50%; /* Пример прогресса */
+        }
+
+        .tier-column {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .reward-card {
+            width: 120px;
+            height: 150px;
+            background: linear-gradient(180deg, var(--brand-grey) 0%, #1a1a1a 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .reward-card.premium {
+            background: linear-gradient(180deg, var(--brand-red) 0%, #800000 100%);
+        }
+
+        .reward-card:hover {
+            transform: scale(1.05);
+            border-color: white;
+        }
+
+        .reward-card.locked {
+            filter: grayscale(1) opacity(0.6);
+        }
+
+        .reward-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 10px;
+        }
+
+        .reward-name {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 900;
+            text-align: center;
+            padding: 0 5px;
+        }
+
+        .tier-marker {
+            width: 12px;
+            height: 12px;
+            background: var(--brand-black);
+            border: 2px solid white;
+            transform: rotate(45deg);
+        }
+
+        .tier-marker.active {
+            background: white;
+            scale: 1.5;
+        }
+
+        /* Габриэль */
+        .featured-reward {
+            position: relative;
+            width: 400px;
+            height: 500px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .halo {
+            position: absolute;
+            top: 50px;
+            width: 280px;
+            height: 280px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 60px rgba(255,255,255,0.4);
+            z-index: 1;
+        }
+
+        .character-img {
+            height: 100%;
+            z-index: 2;
+            object-fit: contain;
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.8));
+        }
+
+        .reward-label {
+            position: absolute;
+            bottom: 40px;
+            right: -20px;
+            background: var(--brand-black);
+            padding: 10px 30px;
+            border-left: 6px solid var(--brand-red);
+            transform: skewX(-10deg);
+            z-index: 3;
+        }
+
+        .reward-label h2 {
+            font-style: italic;
+            text-transform: uppercase;
+            font-size: 24px;
+        }
+
+        /* Футер: XP Bar */
+        .footer-xp {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .xp-bar-container {
+            flex-grow: 1;
+            max-width: 400px;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            background: var(--brand-red);
+            width: 65%;
+        }
+
+        .xp-text {
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+        }
+
+        button.boost {
+            background: white;
+            color: black;
+            border: none;
+            padding: 15px 40px;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            cursor: pointer;
+            transform: skewX(-15deg);
+            transition: 0.3s;
+        }
+
+        button.boost:hover {
+            background: var(--brand-red);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-decor">
+        <div class="red-stripe"></div>
+        <div class="brush-divider"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>
+                <span class="black-text">BLACKOUT</span><br>
+                <span class="white-text">BATTLE PASS</span>
+            </h1>
+        </header>
+
+        <div class="content-main">
+            <!-- Трек наград -->
+            <div class="battlepass-track">
+                <div class="track-line"><div class="track-fill" id="trackFill"></div></div>
+                
+                <!-- Уровни (генерируются JS или вручную) -->
+                <div class="tier-column">
+                    <div class="reward-card premium"><i data-lucide="crosshair" class="reward-icon"></i><div class="reward-name">Shotgun</div></div>
+                    <div class="tier-marker active"></div>
+                    <div class="reward-card"><i data-lucide="target" class="reward-icon"></i><div class="reward-name">Sniper</div></div>
+                </div>
+
+                <div class="tier-column">
+                    <div class="reward-card premium active"><i data-lucide="shield" class="reward-icon"></i><div class="reward-name">Armor</div></div>
+                    <div class="tier-marker active"></div>
+                    <div class="reward-card"><i data-lucide="user" class="reward-icon"></i><div class="reward-name">Skin</div></div>
+                </div>
+
+                <div class="tier-column">
+                    <div class="reward-card premium locked"><i data-lucide="sword" class="reward-icon"></i><div class="reward-name">Katana</div></div>
+                    <div class="tier-marker"></div>
+                    <div class="reward-card locked"><i data-lucide="shirt" class="reward-icon"></i><div class="reward-name">Suit</div></div>
+                </div>
+
+                <div class="tier-column">
+                    <div class="reward-card premium locked"><i data-lucide="zap" class="reward-icon"></i><div class="reward-name">Rifle</div></div>
+                    <div class="tier-marker"></div>
+                    <div class="reward-card locked"><i data-lucide="coins" class="reward-icon"></i><div class="reward-name">Credits</div></div>
+                </div>
+
+                <div class="tier-column">
+                    <div class="reward-card premium locked"><i data-lucide="gem" class="reward-icon"></i><div class="reward-name">Knife</div></div>
+                    <div class="tier-marker"></div>
+                    <div class="reward-card locked"><i data-lucide="box" class="reward-icon"></i><div class="reward-name">Chest</div></div>
+                </div>
+            </div>
+
+            <!-- Персонаж -->
+            <div class="featured-reward">
+                <div class="halo"></div>
+                <!-- Замените 'asset.png' на ваш путь к картинке -->
+                <img src="https://i.ibb.co/vz7Zq8p/gabriel-silhouette.png" alt="Gabriel" class="character-img">
+                <div class="reward-label">
+                    <h2>GABRIEL - FINAL REWARD</h2>
+                    <p style="font-size: 10px; opacity: 0.5; font-weight: 900;">TIER 50 LEGENDARY SKIN</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- XP Бар -->
+        <div class="footer-xp">
+            <div style="flex-shrink: 0;">
+                <p style="font-size: 10px; opacity:0.5; font-weight:900;">LEVEL</p>
+                <p class="xp-text" style="font-size: 32px;" id="lvlText">2</p>
+            </div>
+            <div class="xp-bar-container">
+                <div class="xp-bar-fill" id="xpBar"></div>
+            </div>
+            <p class="xp-text">1250 / 2000 XP</p>
+            <button class="boost" onclick="addXP()">Boost XP</button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация иконок Lucide
+        lucide.createIcons();
+
+        let currentXP = 1250;
+        const maxXP = 2000;
+        let lvl = 2;
+
+        function addXP() {
+            currentXP += 250;
+            if (currentXP >= maxXP) {
+                currentXP = 0;
+                lvl++;
+                document.getElementById('lvlText').innerText = lvl;
+                // Анимация прогресса трека
+                document.getElementById('trackFill').style.width = (lvl / 6 * 100) + '%';
+            }
+            document.getElementById('xpBar').style.width = (currentXP / maxXP * 100) + '%';
+        }
+
+        // Устанавливаем изначальную линию
+        document.getElementById('trackFill').style.width = (lvl / 6 * 100) + '%';
+    </script>
+</body>
+</html>
